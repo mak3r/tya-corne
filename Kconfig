@@ -1,0 +1,4 @@
+config TYA_HUD_BROADCAST
+    bool "Broadcast LAYER:/KEY: text lines to corne-kbd-hud over raw HID"
+    default y
+    depends on RAW_HID

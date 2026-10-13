@@ -1,0 +1,18 @@
+# GitHub Actions build matrix (see .github/workflows/build.yml).
+# artifact-name follows halcyon-corne's TARGET convention:
+#   tya_corne_<connectivity>_<side>_<module>
+---
+include:
+  # Left = split central: the half the host pairs with, and the only half
+  # that can expose the raw HID interface corne-kbd-hud reads.
+  - board: nice_nano_v2
+    shield: corne_left nice_view_adapter nice_view raw_hid_adapter
+    artifact-name: tya_corne_wireless_left_niceview
+  - board: nice_nano_v2
+    shield: corne_right nice_view_adapter nice_view
+    artifact-name: tya_corne_wireless_right_niceview
+  # Flash to both halves to wipe pairing/bond state, then reflash the real
+  # firmware. See README.
+  - board: nice_nano_v2
+    shield: settings_reset
+    artifact-name: tya_corne_settings_reset

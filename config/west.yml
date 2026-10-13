@@ -1,0 +1,19 @@
+manifest:
+  defaults:
+    revision: v0.3
+  remotes:
+    - name: zmkfirmware
+      url-base: https://github.com/zmkfirmware
+    - name: zzeneg
+      url-base: https://github.com/zzeneg
+  projects:
+    - name: zmk
+      remote: zmkfirmware
+      import: app/west.yml
+    # Raw HID over USB + BLE; configured in corne.conf to impersonate QMK's
+    # CONSOLE_ENABLE interface so corne-kbd-hud finds it unchanged.
+    - name: zmk-raw-hid
+      remote: zzeneg
+      revision: main
+  self:
+    path: config

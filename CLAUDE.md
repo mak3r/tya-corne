@@ -1,0 +1,41 @@
+# CLAUDE.md — Agent Instructions
+
+Solo hobby-hardware project: ZMK firmware for a Typeractive wireless Corne. Each half has a nice!nano v2 and a nice!view; there are no LEDs and no encoders. Claude works directly on `main`, and the human reviews before tags/releases.
+
+## Related repos
+- `~/projects/halcyon-corne` (`mak3r/halcyon-corne`): the wired Halcyon Corne, QMK/Vial. **Its `mak3r` `keymap.json` is the source of truth for this board's layout.**
+- `~/projects/corne-kbd-hud` (`mak3r/corne-kbd-hud`): the desktop HUD app this board feeds.
+
+ZMK and QMK share no code or tooling. That's why this is a sibling repo and not part of halcyon-corne.
+
+## How it works
+- Standard ZMK user-config repo (from `zmkfirmware/unified-zmk-config-template`), pinned to **ZMK v0.3** (`config/west.yml`). Board name on v0.3 is `nice_nano_v2`.
+- `build.yaml` is the build matrix. `artifact-name` follows halcyon-corne's TARGET convention: `tya_corne_<connectivity>_<side>_<module>`.
+- The keymap file must be named `config/corne.keymap`: ZMK finds it by shield name, and `KEYMAP_FILE` only accepts absolute paths, which don't survive CI. It's "the mak3r keymap" by its header, not its filename.
+- **The keymap is generated.** `scripts/generate_keymap.py` translates the Halcyon's `keymap.json`:
+  - It drops the module row and encoders. The first 42 entries per layer map 1:1 to ZMK corne positions.
+  - It applies an `OVERRIDES` table for wireless-only keys. Each override asserts the QMK keycode it replaces, so a layout change on the Halcyon side fails loudly instead of being clobbered.
+  - An unknown QMK keycode is an error. Add it to the script's tables; don't hand-edit `corne.keymap`.
+- This repo is also a Zephyr module (`zephyr/module.yml`, `CMakeLists.txt`, `Kconfig`) so it can ship `src/hud_broadcast.c`.
+
+## HUD broadcast
+- `zzeneg/zmk-raw-hid` adds a raw HID interface over USB **and** BLE. It's central-only, so the `raw_hid_adapter` shield is only on the left build.
+- `config/corne.conf` sets its usage page/usage/report size to `0xFF31`/`0x74`/`32`, which is QMK `CONSOLE_ENABLE`'s interface. `corne-kbd-hud` matches on exactly that (not VID/PID), so it needs no changes.
+- `src/hud_broadcast.c` sends `LAYER:<n>\n` and `KEY:<row>,<col>,<0|1>\n`, the same wire format as halcyon-corne's `hud_console.c`.
+  - Key positions are translated into the **Halcyon's** matrix row/col (right half mirrored, thumbs on rows 3/8), so the HUD's key highlighting works unchanged.
+  - Sends go through a dedicated work queue. zmk-raw-hid's USB send can block up to 30ms, which mustn't delay key processing.
+
+## Local build
+Use the container, like halcyon-corne does (`podman machine start` first). The workspace is `~/projects/zmk-build` (west checkout of ZMK v0.3 + modules, outside this repo):
+
+```bash
+podman run --rm -v ~/projects/zmk-build:/ws -v ~/projects/tya-corne:/repo \
+  docker.io/zmkfirmware/zmk-build-arm:3.5 sh /ws/build.sh
+```
+
+`build.sh` builds all three targets into `~/projects/zmk-build/out/`. Per-target logs are in `build/<name>.log`. If `west.yml` changes, it re-runs `west update`.
+
+## Commit standards
+- Conventional commits: `<type>(<scope>): <description>`.
+- Include `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` on commits made by Claude.
+- Never reference a commit SHA without verifying it with `git rev-parse --verify <sha>`.
