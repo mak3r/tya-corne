@@ -22,7 +22,7 @@ Every push builds these with GitHub Actions. Download them from the run's **Arti
 
 ## Layout
 
-`config/corne.keymap` is **generated** from the Halcyon's `keymap.json`. Don't edit it by hand:
+`config/corne.keymap` and `src/hud_keymap.inc` are **generated** from the Halcyon's `keymap.json`. Don't edit it by hand:
 
 ```bash
 python3 scripts/generate_keymap.py \
@@ -46,7 +46,9 @@ There's one shared layout file, halcyon-corne's `keymap.json`. It contains the B
 
 ## HUD
 
-The left half exposes a raw HID interface (via [`zzeneg/zmk-raw-hid`](https://github.com/zzeneg/zmk-raw-hid)) set up to look exactly like QMK's console interface. `src/hud_broadcast.c` sends the same `LAYER:<n>` / `KEY:<row>,<col>,<0|1>` lines as the Halcyon, in the Halcyon's row/col numbering. So `corne-kbd-hud` works without any changes, over USB or Bluetooth.
+The left half exposes a raw HID interface (via [`zzeneg/zmk-raw-hid`](https://github.com/zzeneg/zmk-raw-hid)) set up to look exactly like QMK's console interface. `src/hud_broadcast.c` sends the same `LAYER:<n>` / `KEY:<row>,<col>,<0|1>` lines as the Halcyon, in the Halcyon's row/col numbering. So `corne-kbd-hud` works over USB or Bluetooth.
+
+The HUD can also ask the keyboard for its keymap (it writes `MAP?`). The left half answers with one `MAP:` line per key, so the HUD shows this board's actual keys. `generate_keymap.py` writes that table (`src/hud_keymap.inc`) along with `corne.keymap`.
 
 ## Building locally
 

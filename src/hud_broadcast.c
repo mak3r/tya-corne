@@ -7,6 +7,10 @@
  *   "KEY:<row>,<col>,<0|1>\n"  -- a key was released/pressed, in the
  *                                 *Halcyon's* matrix row/col space, so the
  *                                 HUD's per-key highlighting works unchanged
+ *   "MAP:<layer>,<row>,<col>,<keycode>\n", then "MAPEND:<count>\n"
+ *                              -- the whole keymap, as the QMK keycode names
+ *                                 in halcyon-corne's keymap.json, sent when
+ *                                 the HUD writes "MAP?" (hud_keymap.inc)
  *
  * Transport is zzeneg/zmk-raw-hid (USB and BLE), configured in corne.conf to
  * use the console usage page/usage. Central (left) half only: layer state
@@ -29,12 +33,16 @@
 #include <zmk/events/layer_state_changed.h>
 #include <zmk/events/position_state_changed.h>
 #include <zmk/keymap.h>
+#include <zephyr/sys/atomic.h>
 
 #include <raw_hid/events.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #define LINE_SIZE CONFIG_RAW_HID_REPORT_SIZE
+#define KEY_COUNT 42
+
+#include "hud_keymap.inc"
 
 /* ZMK corne position (0-41) -> Halcyon LAYOUT_corne_hlc matrix row/col
  * (see halcyon-corne's mak3r/config.h). The right half's columns are
@@ -63,15 +71,46 @@ static void position_to_halcyon(uint32_t pos, uint8_t *row, uint8_t *col) {
 
 K_MSGQ_DEFINE(hud_msgq, LINE_SIZE, 16, 4);
 
+static void hud_send_report(uint8_t *line) {
+    raise_raw_hid_sent_event((struct raw_hid_sent_event){.data = line, .length = LINE_SIZE});
+}
+
 static void hud_send_work_handler(struct k_work *work) {
     static uint8_t line[LINE_SIZE];
     while (k_msgq_get(&hud_msgq, line, K_NO_WAIT) == 0) {
-        raise_raw_hid_sent_event(
-            (struct raw_hid_sent_event){.data = line, .length = LINE_SIZE});
+        hud_send_report(line);
     }
 }
 
 static K_WORK_DEFINE(hud_send_work, hud_send_work_handler);
+
+static atomic_t dump_running;
+
+/* Runs on the same work queue as hud_send_work, so the two never send at
+ * once. Drains queued LAYER:/KEY: lines between MAP: lines, so key
+ * highlighting keeps up during the (BLE: several second) dump. */
+static void hud_dump_work_handler(struct k_work *work) {
+    uint8_t line[LINE_SIZE];
+    int count = 0;
+    for (int layer = 0; layer < ARRAY_SIZE(hud_keymap); layer++) {
+        for (int pos = 0; pos < KEY_COUNT; pos++) {
+            uint8_t row, col;
+            position_to_halcyon(pos, &row, &col);
+            memset(line, 0, sizeof(line));
+            snprintf((char *)line, sizeof(line), "MAP:%d,%d,%d,%s\n", layer, row, col,
+                     hud_keymap[layer][pos]);
+            hud_send_report(line);
+            count++;
+            hud_send_work_handler(NULL);
+        }
+    }
+    memset(line, 0, sizeof(line));
+    snprintf((char *)line, sizeof(line), "MAPEND:%d\n", count);
+    hud_send_report(line);
+    atomic_clear(&dump_running);
+}
+
+static K_WORK_DEFINE(hud_dump_work, hud_dump_work_handler);
 static K_THREAD_STACK_DEFINE(hud_work_stack, 1024);
 static struct k_work_q hud_work_q;
 
@@ -114,6 +153,28 @@ static int hud_position_listener(const zmk_event_t *eh) {
 
 ZMK_LISTENER(hud_position, hud_position_listener);
 ZMK_SUBSCRIPTION(hud_position, zmk_position_state_changed);
+
+/* The HUD asks for the keymap by writing "MAP?". Tolerate a leading 0x00,
+ * in case a host passes the (unused) report ID through. */
+static int hud_request_listener(const zmk_event_t *eh) {
+    const struct raw_hid_received_event *ev = as_raw_hid_received_event(eh);
+    if (ev == NULL) {
+        return ZMK_EV_EVENT_BUBBLE;
+    }
+    const uint8_t *data = ev->data;
+    uint8_t length = ev->length;
+    if (length > 0 && data[0] == 0) {
+        data++;
+        length--;
+    }
+    if (length >= 4 && memcmp(data, "MAP?", 4) == 0 && atomic_cas(&dump_running, 0, 1)) {
+        k_work_submit_to_queue(&hud_work_q, &hud_dump_work);
+    }
+    return ZMK_EV_EVENT_BUBBLE;
+}
+
+ZMK_LISTENER(hud_request, hud_request_listener);
+ZMK_SUBSCRIPTION(hud_request, raw_hid_received_event);
 
 static int hud_broadcast_init(void) {
     k_work_queue_start(&hud_work_q, hud_work_stack, K_THREAD_STACK_SIZEOF(hud_work_stack),

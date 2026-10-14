@@ -28,6 +28,11 @@ ZMK and QMK share no code or tooling. That's why this is a sibling repo and not 
 - `src/hud_broadcast.c` sends `LAYER:<n>\n` and `KEY:<row>,<col>,<0|1>\n`, the same wire format as halcyon-corne's `hud_console.c`.
   - Key positions are translated into the **Halcyon's** matrix row/col (right half mirrored, thumbs on rows 3/8), so the HUD's key highlighting works unchanged.
   - Sends go through a dedicated work queue. zmk-raw-hid's USB send can block up to 30ms, which mustn't delay key processing.
+- **Keymap on request.** When the HUD writes `MAP?` (an output report on the same interface), `hud_broadcast.c` replies with `MAP:<layer>,<row>,<col>,<keycode>\n` for every key, then `MAPEND:<count>\n`.
+  - The keycodes are the QMK names from halcyon-corne's `keymap.json` (e.g. `LCTL_T(KC_D)`, `BT_SEL_0`), so the HUD labels both boards with the same code.
+  - They come from `src/hud_keymap.inc`, which `generate_keymap.py` writes next to `corne.keymap`. There's no ZMK Studio here, so that table always matches what's running. If Studio (live remapping) is ever added, this would have to read the live bindings instead.
+  - The dump runs on the same work queue and drains queued `KEY:`/`LAYER:` lines between `MAP:` lines. A `MAP?` that arrives mid-dump is ignored.
+  - The generator fails if a `MAP:` line wouldn't fit in one 32-byte report.
 
 ## Local build
 Use the container, like halcyon-corne does (`podman machine start` first). The workspace is `~/projects/zmk-build` (west checkout of ZMK v0.3 + modules, outside this repo):
