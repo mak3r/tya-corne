@@ -42,7 +42,7 @@ python3 scripts/generate_keymap.py \
   - M/,/./: scroll
   - A: sends F13, which is the Halcyon's drag-to-scroll toggle and harmless here
 
-The layer 5 keys are the only entries in the script's `OVERRIDES` table.
+There's one shared layout file, halcyon-corne's `keymap.json`. It contains the Bluetooth keys too (`OUT_TOG`, `BT_CLR`, `BT_SEL_0`–`4`); the Halcyon defines them as `KC_NO`.
 
 ## HUD
 
