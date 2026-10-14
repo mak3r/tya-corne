@@ -34,7 +34,6 @@ python3 scripts/generate_keymap.py \
 - **Layer 3:** the RGB keys do nothing here (no LEDs).
 - **Layer 5** (reached with `TG(5)` on layer 3, left with either middle thumb). These keys do nothing on the Halcyon:
   - top-left: USB/Bluetooth output toggle
-  - top row, rightmost left-half key: unlock ZMK Studio
   - left middle-row outer key: clear the current profile's pairing
   - bottom row, first five keys: Bluetooth profiles 0–4
 - **Layer 4 (Mouse)** is the same on both boards:
@@ -54,12 +53,3 @@ The HUD can also ask the keyboard for its keymap (it writes `MAP?`). The left ha
 ## Building locally
 
 See `CLAUDE.md` ("Local build").
-
-## ZMK Studio
-
-The left half has [ZMK Studio](https://zmk.studio) turned on, for live keymap editing: in the browser (Chrome/Edge, USB only) or the desktop app (USB or Bluetooth). Studio starts locked. Press the unlock key (layer 5, the left half's top-right key) when it asks.
-
-Studio edits are saved on the keyboard and override the layout built into the firmware. So:
-- **The shared layout doesn't see them.** halcyon-corne's `keymap.json` is still the real layout for both boards. Treat Studio edits as experiments until they're copied back into `keymap.json`.
-- **The HUD doesn't see them either.** The keymap the left half sends the HUD is built in at compile time, so after a Studio edit the HUD shows the built-in labels.
-- **To go back to the built-in layout,** for example after flashing firmware with the edits baked in, use Studio's "Restore stock settings".

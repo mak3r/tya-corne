@@ -18,8 +18,7 @@ What it does:
   key either board can do; each board turns the ones it can't do into a
   no-op. Here that's the Halcyon's RGB keys (UNSUPPORTED_HERE -> &none).
   The Halcyon does the same for the Bluetooth/output keys (OUT_TOG, BT_CLR,
-  BT_SEL_n) and the ZMK Studio unlock key (STUDIO_UNLOCK), which are
-  #defined to KC_NO in its config.h. Only keycodes
+  BT_SEL_n), which are #defined to KC_NO in its config.h. Only keycodes
   listed as known-but-unsupported become no-ops: anything else that doesn't
   translate (a typo, say) is still an error.
 """
@@ -78,7 +77,6 @@ SIMPLE = {
     "OUT_TOG": "&out OUT_TOG", "BT_CLR": "&bt BT_CLR",
     "BT_SEL_0": "&bt BT_SEL 0", "BT_SEL_1": "&bt BT_SEL 1", "BT_SEL_2": "&bt BT_SEL 2",
     "BT_SEL_3": "&bt BT_SEL 3", "BT_SEL_4": "&bt BT_SEL 4",
-    "STUDIO_UNLOCK": "&studio_unlock",
 }
 
 # Real keycodes in the shared layout that this board can't do (no LEDs).
