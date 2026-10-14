@@ -16,7 +16,7 @@ ZMK and QMK share no code or tooling. That's why this is a sibling repo and not 
   - It drops the module row and encoders. The first 42 entries per layer map 1:1 to ZMK corne positions.
   - **halcyon-corne's `keymap.json` is the single layout shared by both boards** (Mark's decision, 2026-10-14). It holds every key either board can do. Each board turns the keys it can't do into a no-op, but only keycodes it explicitly lists as known-but-unsupported:
     - here, `UNSUPPORTED_HERE` (the QMK `RM_*` RGB keys) become `&none`
-    - on the Halcyon, the Bluetooth/output names (`OUT_TOG`, `BT_CLR`, `BT_SEL_0`–`4`) are `#define`d to `KC_NO` in its `config.h`, and its `generate_keymap_from_vil.py` keeps them when a Vial export shows those spots as `KC_NO`
+    - on the Halcyon, the Bluetooth/output names (`OUT_TOG`, `BT_CLR`, `BT_SEL_0`–`4`) and the Studio unlock key (`STUDIO_UNLOCK`) are `#define`d to `KC_NO` in its `config.h`, and its `generate_keymap_from_vil.py` keeps them when a Vial export shows those spots as `KC_NO`
 
     Those three lists must stay in sync. There are no per-board overrides; change the shared layout instead.
   - An unknown QMK keycode is an error. Add it to the script's tables; don't hand-edit `corne.keymap`.
@@ -33,6 +33,14 @@ ZMK and QMK share no code or tooling. That's why this is a sibling repo and not 
   - They come from `src/hud_keymap.inc`, which `generate_keymap.py` writes next to `corne.keymap`. There's no ZMK Studio here, so that table always matches what's running. If Studio (live remapping) is ever added, this would have to read the live bindings instead.
   - The dump runs on the same work queue and drains queued `KEY:`/`LAYER:` lines between `MAP:` lines. A `MAP?` that arrives mid-dump is ignored.
   - The generator fails if a `MAP:` line wouldn't fit in one 32-byte report.
+
+## ZMK Studio
+- Enabled on the left (central) build only: `build.yaml` adds the `studio-rpc-usb-uart` snippet and `-DCONFIG_ZMK_STUDIO=y` (Mark's request, 2026-10-14). `~/projects/zmk-build/build.sh` passes the same; keep them in sync.
+- Locking is on (the default). The unlock key is `STUDIO_UNLOCK` in `keymap.json` → `&studio_unlock`, on layer 5 at the left half's top-right key.
+- Studio edits live in the keyboard's settings and override the compiled keymap. That breaks two assumptions elsewhere:
+  - `keymap.json` is meant to be the one layout. Studio edits aren't in it until someone copies them back.
+  - `hud_keymap.inc` (what `MAP?` answers) is the compiled keymap, so the HUD shows stale labels after a Studio edit.
+- Planned, not built: a script that reads the live keymap over Studio's RPC and writes it back into `keymap.json` ("bake it in"), and having `MAP?` answer from the live bindings so the HUD shows Studio edits. Both need ZMK→QMK reverse translation of `generate_keymap.py`'s tables.
 
 ## Local build
 Use the container, like halcyon-corne does (`podman machine start` first). The workspace is `~/projects/zmk-build` (west checkout of ZMK v0.3 + modules, outside this repo):
