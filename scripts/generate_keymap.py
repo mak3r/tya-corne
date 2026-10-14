@@ -12,10 +12,13 @@ What it does:
   module row (the last 10 entries) and the encoder map.
 - Translates each QMK keycode to a ZMK binding via the tables below. An
   unknown keycode is an error. Add it to a table instead of guessing.
-- Applies OVERRIDES: the wireless-only changes (BT profile keys, USB/BLE
-  toggle, mouse movement on layer 4). Each override names the QMK keycode it
-  expects to replace. If the Halcyon layout has changed under it, the script
-  fails, rather than silently overwriting a key that has moved.
+- The layout is identical on both boards. Keys one board can't use do
+  nothing there: the Halcyon's RGB keys become &none here (no LEDs).
+- Applies OVERRIDES: the Bluetooth/output keys on layer 5, which are KC_NO
+  on the Halcyon (QMK has no Bluetooth keycodes). Each override names the
+  QMK keycode it expects to replace. If the Halcyon layout has changed under
+  it, the script fails, rather than silently overwriting a key that has
+  moved.
 """
 
 import json
@@ -61,32 +64,28 @@ SIMPLE = {
     "KC_TRNS": "&trans", "KC_NO": "&none",
     "QK_BOOT": "&bootloader", "QK_CAPS_WORD_TOGGLE": "&caps_word",
     "KC_BTN1": "&mkp LCLK", "KC_BTN2": "&mkp RCLK", "KC_BTN3": "&mkp MCLK",
+    "KC_MS_LEFT": "&mmv MOVE_LEFT", "KC_MS_DOWN": "&mmv MOVE_DOWN",
+    "KC_MS_UP": "&mmv MOVE_UP", "KC_MS_RIGHT": "&mmv MOVE_RIGHT",
+    "KC_MS_WH_LEFT": "&msc SCRL_LEFT", "KC_MS_WH_DOWN": "&msc SCRL_DOWN",
+    "KC_MS_WH_UP": "&msc SCRL_UP", "KC_MS_WH_RIGHT": "&msc SCRL_RIGHT",
+    # No LEDs on this board: the Halcyon's RGB keys do nothing here.
+    "RM_TOGG": "&none", "RM_NEXT": "&none", "RM_PREV": "&none",
+    "RM_VALU": "&none", "RM_VALD": "&none",
 }
 
 # (layer, ZMK position) -> (expected QMK keycode, ZMK binding).
 # Positions: row 0 = 0-11, row 1 = 12-23, row 2 = 24-35, thumbs = 36-41.
+#
+# The layout is otherwise identical on both boards. These are the only keys
+# QMK can't express: the Halcyon has KC_NO in these layer 5 spots.
 OVERRIDES = {
-    # Layer 3 (Function): no LEDs on this board, so the RGB keys become
-    # wireless controls.
-    (3, 0): ("RM_TOGG", "&out OUT_TOG"),
-    (3, 12): ("KC_NO", "&bt BT_CLR"),
-    (3, 24): ("RM_NEXT", "&bt BT_SEL 0"),
-    (3, 25): ("RM_VALD", "&bt BT_SEL 1"),
-    (3, 26): ("RM_VALU", "&bt BT_SEL 2"),
-    (3, 27): ("KC_NO", "&bt BT_SEL 3"),
-    (3, 28): ("KC_NO", "&bt BT_SEL 4"),
-    # Layer 4 (Mouse): no trackpad, so the drag-to-scroll trigger (F13) goes,
-    # and the right hand gets movement (home row, same spots as layer 2's
-    # arrows) and scroll (bottom row).
-    (4, 13): ("KC_F13", "&none"),
-    (4, 19): ("KC_TRNS", "&mmv MOVE_LEFT"),
-    (4, 20): ("KC_TRNS", "&mmv MOVE_DOWN"),
-    (4, 21): ("KC_TRNS", "&mmv MOVE_UP"),
-    (4, 22): ("KC_TRNS", "&mmv MOVE_RIGHT"),
-    (4, 31): ("KC_TRNS", "&msc SCRL_LEFT"),
-    (4, 32): ("KC_TRNS", "&msc SCRL_DOWN"),
-    (4, 33): ("KC_TRNS", "&msc SCRL_UP"),
-    (4, 34): ("KC_TRNS", "&msc SCRL_RIGHT"),
+    (5, 0): ("KC_NO", "&out OUT_TOG"),
+    (5, 12): ("KC_NO", "&bt BT_CLR"),
+    (5, 24): ("KC_NO", "&bt BT_SEL 0"),
+    (5, 25): ("KC_NO", "&bt BT_SEL 1"),
+    (5, 26): ("KC_NO", "&bt BT_SEL 2"),
+    (5, 27): ("KC_NO", "&bt BT_SEL 3"),
+    (5, 28): ("KC_NO", "&bt BT_SEL 4"),
 }
 
 

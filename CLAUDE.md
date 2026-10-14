@@ -14,7 +14,8 @@ ZMK and QMK share no code or tooling. That's why this is a sibling repo and not 
 - The keymap file must be named `config/corne.keymap`: ZMK finds it by shield name, and `KEYMAP_FILE` only accepts absolute paths, which don't survive CI. It's "the mak3r keymap" by its header, not its filename.
 - **The keymap is generated.** `scripts/generate_keymap.py` translates the Halcyon's `keymap.json`:
   - It drops the module row and encoders. The first 42 entries per layer map 1:1 to ZMK corne positions.
-  - It applies an `OVERRIDES` table for wireless-only keys. Each override asserts the QMK keycode it replaces, so a layout change on the Halcyon side fails loudly instead of being clobbered.
+  - **The layout is identical on both boards** (Mark's decision, 2026-10-14). Keys a board can't use do nothing there: QMK RGB keys (`RM_*`) become `&none` here; the Bluetooth/output keys on layer 5 are `KC_NO` on the Halcyon.
+  - The `OVERRIDES` table holds only those layer 5 Bluetooth/output keys, since QMK/Vial have no Bluetooth keycodes. Each override asserts the QMK keycode it replaces (`KC_NO`), so a layout change on the Halcyon side fails loudly instead of being clobbered. Don't add per-board layout differences here; change the shared layout instead.
   - An unknown QMK keycode is an error. Add it to the script's tables; don't hand-edit `corne.keymap`.
 - This repo is also a Zephyr module (`zephyr/module.yml`, `CMakeLists.txt`, `Kconfig`) so it can ship `src/hud_broadcast.c`.
 

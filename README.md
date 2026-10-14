@@ -29,13 +29,20 @@ python3 scripts/generate_keymap.py \
     ../halcyon-corne/keyboards/splitkb/halcyon/corne/keymaps/mak3r/keymap.json
 ```
 
-Layers 0–2 and 5–7 are identical to the Halcyon. The wireless-only differences live in the script's `OVERRIDES` table:
+**The layout is identical to the Halcyon's.** Keys that one board can't use do nothing on that board:
 
-- **Layer 3 (Function):**
-  - top-left key: USB/Bluetooth output toggle (was the RGB toggle)
-  - bottom row, first five keys: Bluetooth profiles 0–4 (were RGB keys)
+- **Layer 3:** the RGB keys do nothing here (no LEDs).
+- **Layer 5** (reached with `TG(5)` on layer 3, left with either middle thumb). These keys do nothing on the Halcyon:
+  - top-left: USB/Bluetooth output toggle
   - left middle-row outer key: clear the current profile's pairing
-- **Layer 4 (Mouse):** clicks stay on S/D/F. J/K/L/; move the pointer, and M/,/./ scroll. The A key (the Halcyon's drag-to-scroll toggle) is empty here.
+  - bottom row, first five keys: Bluetooth profiles 0–4
+- **Layer 4 (Mouse)** is the same on both boards:
+  - S/D/F: clicks
+  - J/K/L/;: mouse movement
+  - M/,/./: scroll
+  - A: sends F13, which is the Halcyon's drag-to-scroll toggle and harmless here
+
+The layer 5 keys are the only entries in the script's `OVERRIDES` table.
 
 ## HUD
 
