@@ -22,7 +22,7 @@ Every push builds these with GitHub Actions. Download them from the run's **Arti
 
 ## Layout
 
-`config/corne.keymap` and `src/hud_keymap.inc` are **generated** from the Halcyon's `keymap.json`. Don't edit it by hand:
+`config/corne.keymap` and `src/hud_keymap.inc` are **generated** from the Halcyon's `keymap.json`. Don't edit them by hand:
 
 ```bash
 python3 scripts/generate_keymap.py \
