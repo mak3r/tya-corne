@@ -127,9 +127,24 @@ static void hud_queue_line(const char *fmt, ...) {
     k_work_submit_to_queue(&hud_work_q, &hud_send_work);
 }
 
+/*
+ * The highest active layer the HUD knows. The keymap's last layers are
+ * hidden mouse speed layers (KC_ACL0/1/2, see generate_keymap.py), which
+ * aren't in the shared layout: while one is latched, report the layer under
+ * it, as the Halcyon does.
+ */
+static int hud_highest_layer(void) {
+    for (int layer = ARRAY_SIZE(hud_keymap) - 1; layer > 0; layer--) {
+        if (zmk_keymap_layer_active(layer)) {
+            return layer;
+        }
+    }
+    return 0;
+}
+
 static int hud_layer_listener(const zmk_event_t *eh) {
     static int last_layer = -1;
-    int layer = zmk_keymap_highest_layer_active();
+    int layer = hud_highest_layer();
     if (layer != last_layer) {
         last_layer = layer;
         hud_queue_line("LAYER:%d\n", layer);

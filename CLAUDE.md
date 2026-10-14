@@ -20,6 +20,7 @@ ZMK and QMK share no code or tooling. That's why this is a sibling repo and not 
 
     Those three lists must stay in sync. There are no per-board overrides; change the shared layout instead.
   - An unknown QMK keycode is an error. Add it to the script's tables; don't hand-edit `corne.keymap`.
+  - **Mouse speed keys** (`KC_ACL0`/`1`/`2`) latch, matching the Halcyon's `mouse_layer.c`. ZMK has none, so each becomes a macro that turns its hidden speed layer on (or off, if it was on) and the other two off. The speed layers come after `keymap.json`'s layers (8–10), are all `&trans`, and only scale `&mmv` through `&mmv_input_listener` overrides (`SPEED_LAYERS` in the script). `MOVE_SPEED`/`MOVE_RAMP_MS` match the Halcyon's `MOUSEKEY_*` speeds; tune both together. `hud_broadcast.c` reports the highest layer below the speed layers, so the HUD never sees them.
 - This repo is also a Zephyr module (`zephyr/module.yml`, `CMakeLists.txt`, `Kconfig`) so it can ship `src/hud_broadcast.c`.
 
 ## HUD broadcast

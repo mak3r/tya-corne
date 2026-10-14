@@ -17,6 +17,10 @@ What it does:
 - keymap.json is the single layout shared by both boards. It holds every
   key either board can do; each board turns the ones it can't do into a
   no-op. Here that's the Halcyon's RGB keys (UNSUPPORTED_HERE -> &none).
+- ZMK has no mouse speed keys, so KC_ACL0/1/2 become macros that latch
+  hidden speed layers, added after keymap.json's layers. While one is on,
+  mmv's input listener scales pointer movement (SPEED_LAYERS below). This
+  matches the Halcyon, where mouse_layer.c latches QMK's speed keys.
   The Halcyon does the same for the Bluetooth/output keys (OUT_TOG, BT_CLR,
   BT_SEL_n), which are #defined to KC_NO in its config.h. Only keycodes
   listed as known-but-unsupported become no-ops: anything else that doesn't
@@ -73,6 +77,7 @@ SIMPLE = {
     "KC_MS_UP": "&mmv MOVE_UP", "KC_MS_RIGHT": "&mmv MOVE_RIGHT",
     "KC_MS_WH_LEFT": "&msc SCRL_LEFT", "KC_MS_WH_DOWN": "&msc SCRL_DOWN",
     "KC_MS_WH_UP": "&msc SCRL_UP", "KC_MS_WH_RIGHT": "&msc SCRL_RIGHT",
+    "KC_ACL0": "&acl0", "KC_ACL1": "&acl1", "KC_ACL2": "&acl2",
     # Wireless-only keycodes in the shared layout (KC_NO on the Halcyon).
     "OUT_TOG": "&out OUT_TOG", "BT_CLR": "&bt BT_CLR",
     "BT_SEL_0": "&bt BT_SEL 0", "BT_SEL_1": "&bt BT_SEL 1", "BT_SEL_2": "&bt BT_SEL 2",
@@ -81,6 +86,41 @@ SIMPLE = {
 
 # Real keycodes in the shared layout that this board can't do (no LEDs).
 UNSUPPORTED_HERE = {"RM_TOGG", "RM_NEXT", "RM_PREV", "RM_VALU", "RM_VALD"}
+
+# Mouse speed, matching the Halcyon's (mouse_layer.c and config.h there).
+# Normal: &mmv ramps up to MOVE_SPEED px/s in MOVE_RAMP_MS. Each speed key
+# turns on its hidden layer and the others off (tap it again to turn it
+# off); the layer scales pointer movement by multiplier/divisor:
+# 62 px/s slow, 625 medium, 2500 fast.
+MOVE_SPEED = 1250
+MOVE_RAMP_MS = 800
+SPEED_LAYERS = [("acl0", "Slow", 1, 20), ("acl1", "Medium", 1, 2), ("acl2", "Fast", 2, 1)]
+
+
+def speed_behaviors(first_layer):
+    """The speed-key macros, and the mmv listener overrides for their layers."""
+    layers = list(range(first_layer, first_layer + len(SPEED_LAYERS)))
+    macros, overrides = [], []
+    for (name, label, mul, div), layer in zip(SPEED_LAYERS, layers):
+        others = " ".join(f"&tog_off {other}" for other in layers if other != layer)
+        macros.append(
+            f"        {name}: {name} {{\n"
+            f'            compatible = "zmk,behavior-macro";\n'
+            f'            display-name = "Mouse {label}";\n'
+            f"            #binding-cells = <0>;\n"
+            f"            wait-ms = <0>;\n"
+            f"            tap-ms = <0>;\n"
+            f"            bindings = <{others} &tog {layer}>;\n"
+            f"        }};"
+        )
+        overrides.append(
+            f"    speed_{label.lower()} {{\n"
+            f"        layers = <{layer}>;\n"
+            f"        input-processors = <&zip_xy_scaler {mul} {div}>;\n"
+            f"    }};"
+        )
+    return "\n".join(macros), "\n".join(overrides)
+
 
 def translate_basic(kc):
     if not kc.startswith("KC_"):
@@ -177,9 +217,17 @@ def main():
     if errors:
         sys.exit("\n".join(errors))
 
+    first_speed_layer = len(layers)
+    for _, label, _, _ in SPEED_LAYERS:
+        layers.append(["&trans"] * KEY_COUNT)
+    speed_macros, speed_overrides = speed_behaviors(first_speed_layer)
+
     blocks = []
     for li, bindings in enumerate(layers):
-        name = LAYER_NAMES[li] if li < len(LAYER_NAMES) else f"Layer{li}"
+        if li >= first_speed_layer:
+            name = "Speed " + SPEED_LAYERS[li - first_speed_layer][1]
+        else:
+            name = LAYER_NAMES[li] if li < len(LAYER_NAMES) else f"Layer{li}"
         blocks.append(
             f"        layer_{li} {{\n"
             f'            display-name = "{name}";\n'
@@ -197,11 +245,15 @@ def main():
  * regenerate.
  */
 
+// Pointer speed of &mmv before the speed layers scale it, in px/s.
+#define ZMK_POINTING_DEFAULT_MOVE_VAL {MOVE_SPEED}
+
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/bt.h>
 #include <dt-bindings/zmk/outputs.h>
 #include <dt-bindings/zmk/pointing.h>
+#include <input/processors.dtsi>
 
 / {{
     behaviors {{
@@ -214,6 +266,16 @@ def main():
             tapping-term-ms = <200>;
             bindings = <&kp>, <&kp>;
         }};
+
+        tog_off: toggle_layer_off {{
+            compatible = "zmk,behavior-toggle-layer";
+            #binding-cells = <1>;
+            toggle-mode = "off";
+            display-name = "Toggle Layer Off";
+        }};
+
+        // Mouse speed keys (KC_ACL0/1/2): latch a hidden speed layer.
+{speed_macros}
     }};
 
     keymap {{
@@ -221,6 +283,15 @@ def main():
 
 {chr(10).join(blocks)}
     }};
+}};
+
+&mmv {{
+    time-to-max-speed-ms = <{MOVE_RAMP_MS}>;
+}};
+
+// While a speed layer is on, scale mouse-key movement (not scrolling).
+&mmv_input_listener {{
+{speed_overrides}
 }};
 """)
     print(f"wrote {OUT_PATH}")
