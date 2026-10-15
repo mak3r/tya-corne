@@ -39,8 +39,9 @@ python3 scripts/generate_keymap.py \
 - **Layer 4 (Mouse)** is the same on both boards:
   - A / ;: left / right click; S and L: middle click
   - D / F / J / K: pointer down / right / left / up
-  - C / V / M / ,: scroll right / down / up / left
-  - U / I / O: lock the pointer speed slow / medium / fast. Tap the same key again to go back to the normal speed-up. ZMK has no speed keys, so each one turns on a hidden speed layer (layers 8–10) that scales `&mmv`. Leaving the mouse layer with a middle thumb (`TO(0)`) also unlocks the speed.
+  - E / R / U / I: scroll right / down / up / left
+  - right outer column, top / middle / bottom: lock the pointer speed slow / medium / fast. Tap the same key again to go back to the normal speed-up. ZMK has no speed keys, so each one turns on a hidden speed layer (layers 8–10) that scales `&mmv`. Leaving the mouse layer with the left middle thumb (`TO(0)`) also unlocks the speed.
+  - right middle thumb: `MO(2)`, as on the base layer, for switching workspaces
   - T: sends F13, which is the Halcyon's drag-to-scroll toggle and harmless here
 
 There's one shared layout file, halcyon-corne's `keymap.json`. It contains the Bluetooth keys too (`OUT_TOG`, `BT_CLR`, `BT_SEL_0`–`4`); the Halcyon defines them as `KC_NO`.
